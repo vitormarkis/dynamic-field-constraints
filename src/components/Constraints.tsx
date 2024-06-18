@@ -16,15 +16,33 @@ export const Constraints = React.forwardRef<
   ConstraintsProps
 >(function ConstraintsComponent({ className, ...props }, ref) {
   const availableConstraints: Constraint[] = [
-    new DateRangeConstraint(
-      new Date(),
-      new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)
-    ),
+    // DateRangeConstraint.restore(
+    //   '{"init":{"endDate":"2024-06-11T03:00:00.000Z","startDate":"2024-06-10T03:00:00.000Z"},"name":"DATE_RANGE"}'
+    // ),
+    // new DateRangeConstraint({
+    //   startDate: new Date(),
+    //   endDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+    // }),
   ]
 
-  const [constraints, setConstraints] = useState<(typeof ConstraintSlugMap)[]>(
-    []
-  )
+  const fromDB =
+    '"DATE_RANGE"~~{"endDate":"2024-06-02T03:00:00.000Z","startDate":"2024-06-01T03:00:00.000Z"}'
+
+  const [_slug, _initProps] = fromDB.split("~~")
+  const slug = JSON.parse(_slug)
+
+  const ConstraintsMapper = {
+    DATE_RANGE: DateRangeConstraint,
+  }
+
+  console.log({ slug, keys: Object.keys(ConstraintsMapper) })
+
+  const [constraints, setConstraints] = useState<(typeof ConstraintSlugMap)[]>([
+    {
+      slug,
+      value: ConstraintsMapper[slug]["restore"](_initProps),
+    },
+  ])
 
   const validationConstraints = constraints.map(c => c.value)
 
@@ -107,6 +125,14 @@ export const Constraints = React.forwardRef<
           )
         })}
       </div>
+      <Button
+        onClick={() => {
+          const json = constraints.map(c => c.value.dispatch())
+          console.log(json)
+        }}
+      >
+        Submit
+      </Button>
     </div>
   )
 })
