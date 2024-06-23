@@ -60,5 +60,3 @@ export class DateRangeConstraint {
     })
   }
 }
-
-export type Constraint = DateRangeConstraint

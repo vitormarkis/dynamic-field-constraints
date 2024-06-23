@@ -47,7 +47,8 @@ export const DateField = React.forwardRef<
           mode="single"
           selected={value}
           onSelect={v => {
-            onChange(v!)
+            if (!v) return
+            onChange(v)
             setOpen(false)
           }}
           initialFocus

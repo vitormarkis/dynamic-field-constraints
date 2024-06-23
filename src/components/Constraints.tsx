@@ -1,12 +1,15 @@
 import { DateField } from "@/components/DateField"
 import { Button } from "@/components/ui/button"
 import { DateRangeComponent } from "@/constraints/date-range/component"
+import { DateRangeConstraint } from "@/constraints/date-range/instance"
 import {
   Constraint,
-  DateRangeConstraint,
-} from "@/constraints/date-range/instance"
+  ConstraintClass,
+  ConstraintSlugMap,
+} from "@/constraints/type"
+import { WeekdayComponent } from "@/constraints/weekday/component"
+import { WeekdayConstraint } from "@/constraints/weekday/instance"
 import { cn } from "@/lib/utils"
-import { only } from "@/utils"
 import React, { useReducer, useState } from "react"
 
 export type ConstraintsProps = React.ComponentPropsWithoutRef<"div">
@@ -15,13 +18,16 @@ export const Constraints = React.forwardRef<
   React.ElementRef<"div">,
   ConstraintsProps
 >(function ConstraintsComponent({ className, ...props }, ref) {
-  const availableConstraints: Constraint[] = [
+  const availableConstraints: ConstraintClass[] = [
     // DateRangeConstraint.restore(
     //   '{"init":{"endDate":"2024-06-11T03:00:00.000Z","startDate":"2024-06-10T03:00:00.000Z"},"name":"DATE_RANGE"}'
     // ),
     new DateRangeConstraint({
       startDate: new Date(),
       endDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
+    }),
+    new WeekdayConstraint({
+      weekday: "Sunday",
     }),
   ]
 
@@ -33,13 +39,10 @@ export const Constraints = React.forwardRef<
 
   const ConstraintsMapper = {
     DATE_RANGE: DateRangeConstraint,
+    WEEKDAY: WeekdayConstraint,
   }
 
-  console.log({ slug, keys: Object.keys(ConstraintsMapper) })
-
-  const [constraints, setConstraints] = useState<(typeof ConstraintSlugMap)[]>(
-    []
-  )
+  const [constraints, setConstraints] = useState<Constraint[]>([])
   // [
   //   {
   //     slug,
@@ -66,7 +69,10 @@ export const Constraints = React.forwardRef<
         </strong>
       )}
       {constraints.map(constraint => (
-        <div className="px-4 py-4 rounded border border-dashed">
+        <div
+          key={constraint.slug}
+          className="px-4 py-4 rounded border border-dashed"
+        >
           <div className="flex justify-between">
             <span>{constraint.slug}</span>
             <Button
@@ -109,6 +115,7 @@ export const Constraints = React.forwardRef<
         {availableConstraints.map(constraint => {
           return (
             <Button
+              key={constraint.slug}
               variant="ghost"
               size="sm"
               className={cn("", className)}
@@ -118,7 +125,7 @@ export const Constraints = React.forwardRef<
                   ...s,
                   {
                     slug: constraint.slug,
-                    value: constraint as (typeof ConstraintSlugMap)["value"],
+                    value: constraint as Constraint["value"],
                   },
                 ])
               }}
@@ -140,14 +147,9 @@ export const Constraints = React.forwardRef<
   )
 })
 
-const ConstraintSlugMap = only({
-  slug: "DATE_RANGE",
-  value: DateRangeConstraint["prototype"],
-})
-
 type ConstraintMapperProps = {
-  constraint: typeof ConstraintSlugMap
-  onChange(constraint: (typeof ConstraintSlugMap)["value"]): void
+  constraint: Constraint
+  onChange(constraint: Constraint["value"]): void
 }
 
 export function ConstraintMapper({
@@ -162,12 +164,21 @@ export function ConstraintMapper({
           value={constraint.value}
         />
       )
+    case "WEEKDAY":
+      return (
+        <WeekdayComponent
+          onChange={onChange}
+          value={constraint.value}
+        />
+      )
+    default:
+      constraint satisfies never
   }
 }
 
 export const useConstraints = <T,>(
   initialValue: T,
-  constraints: Constraint[]
+  constraints: ConstraintClass[]
 ) => {
   const initialState = {
     error: null,
@@ -189,8 +200,12 @@ export const useConstraints = <T,>(
     }
   }, initialState)
 
+  function onChangeSelf(value: T) {
+    onChange(value)
+  }
+
   return {
     ...state,
-    onChange,
+    onChange: onChangeSelf,
   }
 }

@@ -53,9 +53,10 @@ export const DateRangeComponent = React.forwardRef<
             <Calendar
               mode="single"
               selected={min}
-              onSelect={s => {
-                setMin(s!)
-                valueFinal.current.startDate = s!
+              onSelect={v => {
+                if (!v) return
+                setMin(v)
+                valueFinal.current.startDate = v!
                 dispatchNewValue()
               }}
               initialFocus
@@ -84,9 +85,10 @@ export const DateRangeComponent = React.forwardRef<
             <Calendar
               mode="single"
               selected={max}
-              onSelect={s => {
-                setMax(s!)
-                valueFinal.current.endDate = s!
+              onSelect={v => {
+                if (!v) return
+                setMax(v!)
+                valueFinal.current.endDate = v!
                 dispatchNewValue()
               }}
             />

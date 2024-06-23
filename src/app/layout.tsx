@@ -19,7 +19,12 @@ export default function RootLayout({
       lang="en"
       className="dark"
     >
-      <body className={inter.className}>{children}</body>
+      <body
+        suppressHydrationWarning
+        className={inter.className}
+      >
+        {children}
+      </body>
     </html>
   )
 }
