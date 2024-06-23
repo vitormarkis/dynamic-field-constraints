@@ -1,4 +1,6 @@
+import { GenericConstraint } from "@/constraints/type"
 import { bad, nice } from "@/utils"
+import { RefObject, createRef } from "react"
 
 export type ConstraintType<T = any> = {
   name: string
@@ -17,13 +19,21 @@ type ConstraintInitName = {
   name: "DATE_RANGE"
 }
 
-export class DateRangeConstraint {
+export class DateRangeConstraint implements GenericConstraint<Date> {
   startDate: Date
   endDate: Date
+  ref: RefObject<{ pulse(): void }>
 
   constructor(props: ConstraintInitProps["init"]) {
     this.startDate = props.startDate
     this.endDate = props.endDate
+    this.ref = createRef()
+  }
+
+  check(value: Date, newValue: Date): [nowAllowed: boolean] {
+    if (value < this.startDate) return [true]
+    if (value > this.endDate) return [true]
+    return [false]
   }
 
   name = "Date Range"
@@ -45,7 +55,7 @@ export class DateRangeConstraint {
   }
 
   static serialize({ init, name }: ConstraintInitProps & ConstraintInitName) {
-    const nameStr = JSON.stringify(name)
+    const nameStr = name
     const initStr = JSON.stringify(init)
     return `${nameStr}~~${initStr}`
   }

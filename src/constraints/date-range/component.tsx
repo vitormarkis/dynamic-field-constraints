@@ -1,10 +1,8 @@
-import { Input } from "@/components/ui/input"
 import { DateRangeConstraint } from "@/constraints/date-range/instance"
-import React, { useRef, useState } from "react"
 import { format } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
+import React, { useImperativeHandle, useRef, useState } from "react"
 
-import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -12,22 +10,22 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-
-export type DateRangeComponentProps = {
-  value: DateRangeConstraint
-  onChange(value: DateRangeConstraint): void
-}
+import { ConstraintComponentProps } from "@/constraints/type"
+import { cn } from "@/lib/utils"
 
 export const DateRangeComponent = React.forwardRef<
   React.ElementRef<"input">,
-  DateRangeComponentProps
->(function DateRangeComponentComponent({ onChange, value }, ref) {
-  const [min, setMin] = useState(value.startDate)
-  const [max, setMax] = useState(value.endDate)
-  const valueFinal = useRef(value)
+  ConstraintComponentProps<Date, DateRangeConstraint>
+>(function DateRangeComponentComponent(
+  { onConstraintChange, constraint, value },
+  ref
+) {
+  const [min, setMin] = useState(constraint.startDate)
+  const [max, setMax] = useState(constraint.endDate)
+  const valueFinal = useRef(constraint)
 
   function dispatchNewValue() {
-    onChange(valueFinal.current)
+    onConstraintChange(valueFinal.current)
   }
 
   return (
@@ -53,10 +51,16 @@ export const DateRangeComponent = React.forwardRef<
             <Calendar
               mode="single"
               selected={min}
-              onSelect={v => {
-                if (!v) return
-                setMin(v)
-                valueFinal.current.startDate = v!
+              onSelect={newValue => {
+                if (!newValue) return
+                const [notAllowed] = constraint.check(value, newValue)
+                if (notAllowed) {
+                  return console.log(
+                    "Constraint validation: Can't be after the current date."
+                  )
+                }
+                setMin(newValue)
+                valueFinal.current.startDate = newValue
                 dispatchNewValue()
               }}
               initialFocus
@@ -85,10 +89,16 @@ export const DateRangeComponent = React.forwardRef<
             <Calendar
               mode="single"
               selected={max}
-              onSelect={v => {
-                if (!v) return
-                setMax(v!)
-                valueFinal.current.endDate = v!
+              onSelect={newValue => {
+                if (!newValue) return
+                const [notAllowed] = constraint.check(value, newValue)
+                if (notAllowed) {
+                  return console.log(
+                    "Constraint validation: Can't be before the current date."
+                  )
+                }
+                setMax(newValue)
+                valueFinal.current.endDate = newValue
                 dispatchNewValue()
               }}
             />

@@ -1,13 +1,12 @@
+import { ConstraintContainer } from "@/components/ConstraintContainer"
 import { DateField } from "@/components/DateField"
 import { Button } from "@/components/ui/button"
-import { DateRangeComponent } from "@/constraints/date-range/component"
 import { DateRangeConstraint } from "@/constraints/date-range/instance"
 import {
-  Constraint,
   ConstraintClass,
-  ConstraintSlugMap,
+  ConstraintsUnion,
+  GenericConstraint,
 } from "@/constraints/type"
-import { WeekdayComponent } from "@/constraints/weekday/component"
 import { WeekdayConstraint } from "@/constraints/weekday/instance"
 import { cn } from "@/lib/utils"
 import React, { useReducer, useState } from "react"
@@ -34,15 +33,14 @@ export const Constraints = React.forwardRef<
   const fromDB =
     '"DATE_RANGE"~~{"endDate":"2024-06-02T03:00:00.000Z","startDate":"2024-06-01T03:00:00.000Z"}'
 
-  const [_slug, _initProps] = fromDB.split("~~")
-  const slug = JSON.parse(_slug)
+  const [slug, _initProps] = fromDB.split("~~")
 
   const ConstraintsMapper = {
     DATE_RANGE: DateRangeConstraint,
     WEEKDAY: WeekdayConstraint,
   }
 
-  const [constraints, setConstraints] = useState<Constraint[]>([])
+  const [constraints, setConstraints] = useState<ConstraintsUnion[]>([])
   // [
   //   {
   //     slug,
@@ -52,10 +50,23 @@ export const Constraints = React.forwardRef<
 
   const validationConstraints = constraints.map(c => c.value)
 
-  const { value, error, onChange } = useConstraints<Date>(
+  const { value, error, onChange } = useConstraints(
     new Date(),
     validationConstraints
   )
+
+  function updateConstraint(newConstraintValue: GenericConstraint) {
+    setConstraints(cons => {
+      return cons.map(({ slug, value }) =>
+        slug === newConstraintValue.slug
+          ? {
+              slug,
+              value: newConstraintValue,
+            }
+          : { slug, value }
+      )
+    })
+  }
 
   return (
     <div className="flex flex-col justify-start px-6 gap-2">
@@ -69,42 +80,15 @@ export const Constraints = React.forwardRef<
         </strong>
       )}
       {constraints.map(constraint => (
-        <div
-          key={constraint.slug}
-          className="px-4 py-4 rounded border border-dashed"
-        >
-          <div className="flex justify-between">
-            <span>{constraint.slug}</span>
-            <Button
-              variant="destructive"
-              size="icon"
-              className="size-6"
-              onClick={() => {
-                setConstraints(cons =>
-                  cons.filter(c => c.slug !== constraint.slug)
-                )
-              }}
-            >
-              X
-            </Button>
-          </div>
-          <div className="py-2" />
-          <ConstraintMapper
-            onChange={newConstraintValue => {
-              setConstraints(cons => {
-                return cons.map(({ slug, value }) =>
-                  slug === newConstraintValue.slug
-                    ? {
-                        slug,
-                        value: newConstraintValue,
-                      }
-                    : { slug, value }
-                )
-              })
-            }}
-            constraint={constraint}
-          />
-        </div>
+        <ConstraintContainer
+          key={constraint.value.slug}
+          fieldValue={value}
+          constraint={constraint.value}
+          onConstraintChange={updateConstraint}
+          onClickRemove={() => {
+            setConstraints(cons => cons.filter(c => c.slug !== constraint.slug))
+          }}
+        />
       ))}
       <h2>Constraints:</h2>
       <div
@@ -125,7 +109,7 @@ export const Constraints = React.forwardRef<
                   ...s,
                   {
                     slug: constraint.slug,
-                    value: constraint as Constraint["value"],
+                    value: constraint,
                   },
                 ])
               }}
@@ -147,47 +131,27 @@ export const Constraints = React.forwardRef<
   )
 })
 
-type ConstraintMapperProps = {
-  constraint: Constraint
-  onChange(constraint: Constraint["value"]): void
-}
-
-export function ConstraintMapper({
-  constraint,
-  onChange,
-}: ConstraintMapperProps) {
-  switch (constraint.slug) {
-    case "DATE_RANGE":
-      return (
-        <DateRangeComponent
-          onChange={onChange}
-          value={constraint.value}
-        />
-      )
-    case "WEEKDAY":
-      return (
-        <WeekdayComponent
-          onChange={onChange}
-          value={constraint.value}
-        />
-      )
-    default:
-      constraint satisfies never
-  }
+type State<T> = {
+  error: null | string
+  value: T
 }
 
 export const useConstraints = <T,>(
   initialValue: T,
-  constraints: ConstraintClass[]
+  constraints: GenericConstraint[]
 ) => {
-  const initialState = {
+  const initialState: State<T> = {
     error: null,
     value: initialValue,
   }
-  const [state, onChange] = useReducer((prevState: any, newValue: T) => {
+  const [state, onChange] = useReducer((prevState: State<T>, newValue: T) => {
     for (const constraint of constraints) {
       const [_error, _value] = constraint.validate(newValue as any)
       if (!_error) continue
+      console.log({
+        ref: constraint.ref.current,
+      })
+      constraint.ref.current?.pulse()
       return {
         ...prevState,
         error: _error,
@@ -205,7 +169,8 @@ export const useConstraints = <T,>(
   }
 
   return {
-    ...state,
+    value: state.value,
+    error: state.error,
     onChange: onChangeSelf,
   }
 }

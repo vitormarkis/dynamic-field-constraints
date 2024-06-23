@@ -5,20 +5,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { ConstraintComponentProps } from "@/constraints/type"
 import { WeekdayConstraint } from "@/constraints/weekday/instance"
-import { Weekday } from "@/constraints/weekday/type"
-import React, { useRef } from "react"
-
-export type WeekdayComponentProps = {
-  value: WeekdayConstraint
-  onChange(value: WeekdayConstraint): void
-}
+import { Weekday, fromDateToWeekday } from "@/constraints/weekday/type"
+import React, { useImperativeHandle, useRef } from "react"
 
 export const WeekdayComponent = React.forwardRef<
   React.ElementRef<"input">,
-  WeekdayComponentProps
->(function WeekdayComponentComponent({ onChange, value }, ref) {
-  const valueFinal = useRef(value)
+  ConstraintComponentProps<Date, WeekdayConstraint>
+>(function WeekdayComponentComponent(
+  { onConstraintChange, constraint, value },
+  ref
+) {
+  const valueFinal = useRef(constraint)
   const weekdays: Weekday[] = [
     "Monday",
     "Tuesday",
@@ -29,8 +28,14 @@ export const WeekdayComponent = React.forwardRef<
     "Sunday",
   ]
 
+  useImperativeHandle(constraint.ref, () => ({
+    pulse() {
+      console.log("Pulsing from ", '<SelectTrigger className="w-[180px]">')
+    },
+  }))
+
   function dispatchNewValue() {
-    onChange(valueFinal.current)
+    onConstraintChange(valueFinal.current)
   }
 
   return (
@@ -39,13 +44,19 @@ export const WeekdayComponent = React.forwardRef<
         <strong>Weekday:</strong>
         <Select
           onValueChange={(wd: Weekday) => {
+            const [notAllowed] = constraint.check(fromDateToWeekday(value), wd)
+            if (notAllowed) {
+              return console.log(
+                "Constraint validation: weekday should match the input selected weekday."
+              )
+            }
             valueFinal.current.weekday = wd
             dispatchNewValue()
           }}
-          value={value.weekday}
+          value={constraint.weekday}
         >
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder={value.weekday} />
+            <SelectValue placeholder={constraint.weekday} />
           </SelectTrigger>
           <SelectContent>
             {weekdays.map(weekday => (

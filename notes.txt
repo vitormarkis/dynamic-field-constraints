@@ -1,0 +1,2 @@
+[ ] constraint deve ter seu valor inicial com base no valor atual do campo
+[ ] ao mudar o valor de uma constraint, ele checa se bate com a data atual também
