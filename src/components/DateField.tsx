@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input"
 import { format } from "date-fns"
 import { Calendar as CalendarIcon } from "lucide-react"
-import React from "react"
+import React, { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -21,8 +21,13 @@ export const DateField = React.forwardRef<
   React.ElementRef<typeof Input>,
   DateFieldProps
 >(function DateFieldComponent({ onChange, value }, ref) {
+  const [open, setOpen] = useState(false)
+
   return (
-    <Popover>
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
+    >
       <PopoverTrigger asChild>
         <Button
           variant={"outline"}
@@ -41,7 +46,10 @@ export const DateField = React.forwardRef<
         <Calendar
           mode="single"
           selected={value}
-          onSelect={v => onChange(v!)}
+          onSelect={v => {
+            onChange(v!)
+            setOpen(false)
+          }}
           initialFocus
         />
       </PopoverContent>

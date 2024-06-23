@@ -6,8 +6,25 @@ export type ConstraintType<T = any> = {
   slug: string
 }
 
+type ConstraintInitProps = {
+  init: {
+    startDate: Date
+    endDate: Date
+  }
+}
+
+type ConstraintInitName = {
+  name: "DATE_RANGE"
+}
+
 export class DateRangeConstraint {
-  constructor(public startDate: Date, public endDate: Date) {}
+  startDate: Date
+  endDate: Date
+
+  constructor(props: ConstraintInitProps["init"]) {
+    this.startDate = props.startDate
+    this.endDate = props.endDate
+  }
 
   name = "Date Range"
   slug = "DATE_RANGE" as const
@@ -23,12 +40,23 @@ export class DateRangeConstraint {
     return nice(value)
   }
 
+  static restore(payload: string) {
+    return new DateRangeConstraint(JSON.parse(payload))
+  }
+
+  static serialize({ init, name }: ConstraintInitProps & ConstraintInitName) {
+    const nameStr = JSON.stringify(name)
+    const initStr = JSON.stringify(init)
+    return `${nameStr}~~${initStr}`
+  }
+
   dispatch() {
-    return JSON.stringify({
-      fields: {
-        startDate: this.startDate,
+    return DateRangeConstraint.serialize({
+      init: {
         endDate: this.endDate,
+        startDate: this.startDate,
       },
+      name: "DATE_RANGE",
     })
   }
 }
